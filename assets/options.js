@@ -206,10 +206,9 @@ showCustomize = () => {
             <option value="{{input}}">主输入框的文本</option>
             <option value="{{subinput}}">子输入框的文本</option>
             <option value="{{pwd}}">文件管理器当前目录</option>
-            <option value="{{ChromeUrl}}">Chrome当前链接</option>
+            <option value="{{ChromeUrl}}">浏览器当前链接</option>
             <option value="{{ClipText}}">剪切板的文本</option>
-            <option value="{{SelectText}}">选中的文本</option>
-            <option value="{{SelectFile}}">选中的文件</option>
+            <option value="{{ClipFile}}">剪切板的路径</option>
         </select>
         <span class="word">输&#12288;出</span>
         <select id="output">

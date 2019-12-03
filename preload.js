@@ -14,9 +14,6 @@ const { shell } = require('electron');
 pluginInfo = JSON.parse(fs.readFileSync(path.join(__dirname, 'plugin.json')));
 logo = nativeImage.createFromPath(path.join(__dirname, 'logo.png'));
 
-// fix PATH
-process.env.PATH += ':/usr/local/bin:/usr/local/sbin'
-
 messageBox = (options, callback) => {
     dialog.showMessageBox(BrowserWindow.getFocusedWindow(), options, index => {
         utools.showMainWindow()
@@ -40,6 +37,10 @@ dirname = __dirname;
 resolve = path.resolve;
 
 exists = fs.existsSync;
+
+// fix PATH
+if (!isWin)
+    process.env.PATH += ':/usr/local/bin:/usr/local/sbin'
 
 getBase64Ico = path => {
     return fs.readFileSync(path, 'base64');
@@ -65,12 +66,6 @@ saveFile = (options, content) => {
     })
 }
 
-copy = () => {
-    var ctlKey = isWin ? 'control' : 'command';
-    robot.keyTap('c', ctlKey);
-    robot.setKeyboardDelay(20);
-}
-
 copyTo = text => {
     clipboard.writeText(text)
 }
@@ -80,33 +75,23 @@ paste = () => {
     robot.keyTap('v', ctlKey);
 }
 
-getSelectText = () => {
-    copy();
-    return clipboard.readText()
-}
 
 getSelectFile = () => {
-    copy();
     var filePath;
     if (isWin) {
         filePath = clipboard.readBuffer('FileNameW').toString('ucs2');
         filePath = filePath.replace(new RegExp(String.fromCharCode(0), 'g'), '');
     } else {
-        filePath = clipboard.read('public.file-url').replace('file://', '');
+        filePath = decodeURI(clipboard.read('public.file-url').replace('file://', ''));
     }
     return filePath;
-}
-
-getAddr = () => {
-    robot.keyTap('d', 'alt');
-    robot.setKeyboardDelay(10);
-    return getSelectText().replace(/\\/g, '/');
 }
 
 pwd = () =>
     new Promise((reslove, reject) => {
         if (isWin) {
-            var addr = getAddr();
+            // var addr = getAddr();
+            var addr = '' // TODO: for windows
             if (!exists(addr)) addr = `${os.homedir().replace(/\\/g, '/')}/Desktop`;
             reslove(addr);
         } else {
@@ -126,21 +111,6 @@ pwd = () =>
             });
         }
     });
-
-chromeUrl = () =>
-    new Promise((reslove, reject) => {
-        if (isWin) {
-            reslove(getAddr());
-        } else {
-            var cmd = `osascript  -e 'tell application "Google Chrome"
-                        get URL of active tab of window 1
-                        end tell'`
-            exec(cmd, (err, stdout, stderr) => {
-                if (err) reject(stderr)
-                reslove(stdout.trim());
-            });
-        }
-});
 
 special = async cmd => {
     // 判断是否 windows 系统
@@ -162,7 +132,8 @@ special = async cmd => {
     }
     // 获取 Chrome 当前链接
     if (cmd.includes('{{ChromeUrl}}')) {
-        let repl = await chromeUrl();
+        // let repl = await chromeUrl();
+        let repl = utools.getCurrentBrowserUrl()
         cmd = cmd.replace(/\{\{ChromeUrl\}\}/mg, repl)
     }
     // 获取剪切板的文本
@@ -170,15 +141,10 @@ special = async cmd => {
         let repl = clipboard.readText();
         cmd = cmd.replace(/\{\{ClipText\}\}/mg, repl)
     }
-    // 获取选中的文本
-    if (cmd.includes('{{SelectText}}')) {
-        let repl = getSelectText();
-        cmd = cmd.replace(/\{\{SelectText\}\}/mg, repl)
-    }
-    // 获取选中的文件
-    if (cmd.includes('{{SelectFile}}')) {
+    // 获取剪切板的路径
+    if (cmd.includes('{{ClipFile}}')) {
         let repl = getSelectFile();
-        cmd = cmd.replace(/\{\{SelectFile\}\}/mg, repl)
+        cmd = cmd.replace(/\{\{ClipFile\}\}/mg, repl)
     }
     return cmd;
 }
